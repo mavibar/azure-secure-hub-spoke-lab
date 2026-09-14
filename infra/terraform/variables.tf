@@ -1,7 +1,11 @@
-variable "location" {
-  description = "Azure region used for lab resources."
+variable "subscription_id" {
+  description = "Azure subscription ID where lab resources will be deployed."
   type        = string
-  default     = "eastus"
+}
+
+variable "resource_group_name" {
+  description = "Existing Azure resource group provided by the sandbox."
+  type        = string
 }
 
 variable "project_name" {

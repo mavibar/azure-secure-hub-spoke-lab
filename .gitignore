@@ -30,3 +30,7 @@ terraform.rc
 # OS/editor junk
 .DS_Store
 Thumbs.db
+
+# Terraform plan files
+*.tfplan
+tfplan

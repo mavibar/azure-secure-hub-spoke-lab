@@ -7,9 +7,6 @@ locals {
   }
 }
 
-resource "azurerm_resource_group" "lab" {
-  name     = "rg-${var.project_name}-${var.environment}"
-  location = var.location
-
-  tags = local.common_tags
+data "azurerm_resource_group" "lab" {
+  name = var.resource_group_name
 }
