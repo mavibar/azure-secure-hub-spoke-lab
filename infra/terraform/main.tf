@@ -4,6 +4,7 @@ locals {
     environment = var.environment
     managedBy   = "terraform"
     purpose     = "cloud-security-lab"
+    owner       = var.owner
   }
 }
 
