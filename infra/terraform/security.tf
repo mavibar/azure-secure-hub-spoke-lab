@@ -38,9 +38,9 @@ resource "azurerm_network_security_rule" "web_allow_https_from_hub" {
   access                      = "Allow"
   protocol                    = "Tcp"
   source_port_range           = "*"
-  destination_port_range      = "443"
-  source_address_prefix       = "10.10.0.0/16"
-  destination_address_prefix  = "10.20.1.0/24"
+  destination_port_range      = tostring(var.service_ports.web)
+  source_address_prefix       = azurerm_subnet.management.address_prefixes[0]
+  destination_address_prefix  = azurerm_subnet.web.address_prefixes[0]
   resource_group_name         = data.azurerm_resource_group.lab.name
   network_security_group_name = azurerm_network_security_group.web.name
 }
@@ -71,9 +71,9 @@ resource "azurerm_network_security_rule" "app_allow_https_from_web" {
   access                      = "Allow"
   protocol                    = "Tcp"
   source_port_range           = "*"
-  destination_port_range      = "443"
-  source_address_prefix       = "10.20.1.0/24"
-  destination_address_prefix  = "10.20.2.0/24"
+  destination_port_range      = tostring(var.service_ports.app)
+  source_address_prefix       = azurerm_subnet.web.address_prefixes[0]
+  destination_address_prefix  = azurerm_subnet.app.address_prefixes[0]
   resource_group_name         = data.azurerm_resource_group.lab.name
   network_security_group_name = azurerm_network_security_group.app.name
 }
@@ -104,9 +104,9 @@ resource "azurerm_network_security_rule" "data_allow_sql_from_app" {
   access                      = "Allow"
   protocol                    = "Tcp"
   source_port_range           = "*"
-  destination_port_range      = "1433"
-  source_address_prefix       = "10.20.2.0/24"
-  destination_address_prefix  = "10.20.3.0/24"
+  destination_port_range      = tostring(var.service_ports.data)
+  source_address_prefix       = azurerm_subnet.app.address_prefixes[0]
+  destination_address_prefix  = azurerm_subnet.data.address_prefixes[0]
   resource_group_name         = data.azurerm_resource_group.lab.name
   network_security_group_name = azurerm_network_security_group.data.name
 }

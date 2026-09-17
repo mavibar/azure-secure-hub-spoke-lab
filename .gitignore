@@ -34,3 +34,6 @@ Thumbs.db
 # Terraform plan files
 *.tfplan
 tfplan
+
+terraform.tfstate.d/
+local-evidence/
