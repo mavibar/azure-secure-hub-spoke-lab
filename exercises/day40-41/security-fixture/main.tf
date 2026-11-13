@@ -6,7 +6,7 @@ resource "azurerm_network_security_rule" "rdp_investigation" {
   protocol                    = "Tcp"
   source_port_range           = "*"
   destination_port_range      = "3389"
-  source_address_prefix       = "*"
+  source_address_prefix       = "10.10.1.0/24"
   destination_address_prefix  = "*"
   resource_group_name         = "rg-day41-fixture"
   network_security_group_name = "nsg-day41-fixture"
