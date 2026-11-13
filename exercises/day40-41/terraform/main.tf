@@ -25,5 +25,5 @@ module "web_nsg" {
 
 output "web_nsg_id" {
   description = "NSG ID exposed by the exercise module."
-  value       = module.web_nsg.nsg_id
+  value       = module.web_nsg.id
 }
