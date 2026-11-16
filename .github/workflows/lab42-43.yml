@@ -23,7 +23,6 @@ jobs:
     env:
       AZURE_CORE_OUTPUT: none
       AZURE_CORE_ONLY_SHOW_ERRORS: "true"
-      AZURE_CONFIG_DIR: ${{ runner.temp }}/day42-43-azure
       TF_IN_AUTOMATION: "true"
       CHECKPOINT_DISABLE: "1"
     steps:
@@ -31,6 +30,8 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - name: Set private Azure CLI directory
+        run: echo "AZURE_CONFIG_DIR=$RUNNER_TEMP/day42-43-azure" >> "$GITHUB_ENV"
       - name: Inspect trust claims
         if: vars.LAB_PLAN_READY != 'true'
         run: python3 exercises/day42-43/scripts/oidc_claims.py
