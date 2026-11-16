@@ -1,0 +1,6 @@
+#cloud-config
+package_update: true
+packages: [ca-certificates, curl, unzip, python3]
+runcmd:
+  - [bash, -c, 'set -eu; curl -fsSL https://aka.ms/InstallAzureCLIDeb -o /var/tmp/install-az.sh; bash /var/tmp/install-az.sh >/var/log/csl-az-install.log 2>&1']
+  - [bash, -c, 'set -eu; cd /var/tmp; curl -fsSLO https://releases.hashicorp.com/terraform/1.16.2/terraform_1.16.2_linux_amd64.zip; curl -fsSLO https://releases.hashicorp.com/terraform/1.16.2/terraform_1.16.2_SHA256SUMS; grep " terraform_1.16.2_linux_amd64.zip$" terraform_1.16.2_SHA256SUMS | sha256sum --check --strict; unzip -o terraform_1.16.2_linux_amd64.zip -d /usr/local/bin; install -d -m 700 /var/lib/csl-lab']
