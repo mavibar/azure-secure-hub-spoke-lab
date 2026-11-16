@@ -3,7 +3,7 @@ import base64, hashlib, json, os, pathlib, re, subprocess, sys
 
 ADDRESS = 'azurerm_network_security_group.proposed'
 stage = 'input'
-def review(document, expected, revision):
+def review(document, expected, revision, expected_rg=None):
     rows = []
     for item in document.get('resource_changes', []):
         if item.get('mode') == 'data' and item.get('address') == 'data.azurerm_resource_group.lab' and item.get('change',{}).get('actions') in (['read'],['no-op']):
@@ -11,6 +11,13 @@ def review(document, expected, revision):
         actions = item.get('change', {}).get('actions')
         if item.get('mode') != 'managed' or item.get('address') != ADDRESS or actions != [expected]:
             raise ValueError('Unexpected resource change')
+        change=item['change']
+        target=change.get('before') if expected=='delete' else change.get('after')
+        if not target or target.get('name')!='nsg-csl-ci-review':
+            raise ValueError('Unexpected target name')
+        for value in (change.get('before'),change.get('after')):
+            if value and (value.get('name')!='nsg-csl-ci-review' or (expected_rg is not None and value.get('resource_group_name')!=expected_rg)):
+                raise ValueError('Unexpected existing or desired resource scope')
         if expected != 'delete':
             after = item['change'].get('after') or {}
             if after.get('name') != 'nsg-csl-ci-review' or after.get('tags') != {'purpose':'learning','revision':revision}:
@@ -72,7 +79,7 @@ def main(job):
         if job['expected']=='delete': args.append('-destroy')
         run(args,'plan',(2,))
         _,raw=run(tf+['show','-json',str(plan)],'show')
-        safe=review(json.loads(raw.read_text()),job['expected'],job['revision'])
+        safe=review(json.loads(raw.read_text()),job['expected'],job['revision'],job['lab_rg'])
         digest=hashlib.sha256(plan.read_bytes()).hexdigest()
         run(['az','storage','blob','upload',*storage,'--name',blob,'--file',str(plan),'--overwrite','false','-o','none'],'save-plan')
     else:
@@ -81,7 +88,7 @@ def main(job):
         digest=hashlib.sha256(plan.read_bytes()).hexdigest()
         if digest!=job['digest']: raise ValueError('Plan digest mismatch')
         _,raw=run(tf+['show','-json',str(plan)],'show')
-        safe=review(json.loads(raw.read_text()),job['expected'],job['revision'])
+        safe=review(json.loads(raw.read_text()),job['expected'],job['revision'],job['lab_rg'])
         (root/'apply-started').write_text(digest)
         run(tf+['apply','-input=false','-no-color',str(plan)],'apply')
         verify=tf+['plan','-input=false','-no-color','-detailed-exitcode','-lock-timeout=30s']
