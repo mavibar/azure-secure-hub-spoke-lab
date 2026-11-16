@@ -87,16 +87,24 @@ def main():
     probe = ["az", "storage", "blob", "list", "--account-name", env["TFSTATE_STORAGE_ACCOUNT"],
              "--container-name", env["TFSTATE_CONTAINER"], "--auth-mode", "login", "--num-results", "1", "--output", "json", "--only-show-errors"]
     code, _ = run(probe, "network-baseline", timeout=40)
-    print("Data-plane baseline: " + ("reachable; an existing network rule may allow access." if code == 0 else "unavailable; the cause is not inferred from this result."), flush=True)
+        print("Checking stage: runner public IP lookup", flush=True)
+
     with urllib.request.urlopen("https://api.ipify.org?format=json", timeout=20) as response:
         first = json.load(response)["ip"]
+
+    print("First public IPv4 source: " + first, flush=True)
+
     with urllib.request.urlopen("https://checkip.amazonaws.com", timeout=20) as response:
         second = response.read(128).decode("ascii").strip()
+
+    print("Second public IPv4 source: " + second, flush=True)
+
     public_ip = ipaddress.ip_address(first)
     if first != second or public_ip.version != 4 or not public_ip.is_global:
         raise ValueError("Public IP check failed")
+
     print("Runner public IPv4 (two services agree): " + str(public_ip), flush=True)
-    print("Waiting up to ten minutes for the host administrator to allow this single IP on the existing state account.", flush=True)
+    print("Waiting up to ten minutes for the host administrator to allow this single IP on the existing state account.", flush=True) the existing state account.", flush=True)
     deadline = time.monotonic() + 600
     while True:
         remaining = deadline - time.monotonic()
@@ -112,7 +120,6 @@ def main():
             raise ValueError("Network access window expired")
         time.sleep(min(15, max(0, deadline - time.monotonic())))
     print("PASS: existing backend container is reachable with Entra authentication.", flush=True)
-
     backend = {
         "storage_account_name": env["TFSTATE_STORAGE_ACCOUNT"],
         "container_name": env["TFSTATE_CONTAINER"],
