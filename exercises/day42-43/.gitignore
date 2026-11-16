@@ -1,0 +1,11 @@
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+*.tfvars
+*.tfvars.json
+backend.hcl
+crash.log
+crash.*.log
+__pycache__/
+# Commit terraform/.terraform.lock.hcl after adding darwin_amd64 checksums.
