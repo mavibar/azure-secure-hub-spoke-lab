@@ -1,0 +1,137 @@
+name: Days 44-45 controlled VM pipeline
+'on':
+  push:
+    branches:
+    - feat/day44-45-vm-pipeline
+permissions:
+  contents: read
+concurrency:
+  group: csl-day44-45-state
+  cancel-in-progress: false
+jobs:
+  inspect-plan:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      AZURE_CORE_OUTPUT: none
+      AZURE_CORE_ONLY_SHOW_ERRORS: 'true'
+    environment: csl-plan
+    if: vars.LAB44_MODE != 'plan' && vars.LAB44_MODE != 'apply' && vars.LAB44_MODE != 'destroy'
+    steps:
+    - name: Check out reviewed source
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      with:
+        persist-credentials: false
+    - name: Inspect trust claims
+      run: python3 exercises/day44-45/scripts/oidc_claims.py
+  inspect-apply:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      AZURE_CORE_OUTPUT: none
+      AZURE_CORE_ONLY_SHOW_ERRORS: 'true'
+    environment: csl-apply
+    if: vars.LAB44_MODE != 'plan' && vars.LAB44_MODE != 'apply' && vars.LAB44_MODE != 'destroy'
+    steps:
+    - name: Check out reviewed source
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      with:
+        persist-credentials: false
+    - name: Inspect trust claims
+      run: python3 exercises/day44-45/scripts/oidc_claims.py
+  plan:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      AZURE_CORE_OUTPUT: none
+      AZURE_CORE_ONLY_SHOW_ERRORS: 'true'
+    environment: csl-plan
+    if: vars.LAB44_MODE == 'plan' || vars.LAB44_MODE == 'apply' || vars.LAB44_MODE == 'destroy'
+    outputs:
+      digest: ${{ steps.execute.outputs.digest }}
+      run_key: ${{ steps.execute.outputs.run_key }}
+    steps:
+    - name: Check out reviewed source
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      with:
+        persist-credentials: false
+    - name: Private Azure session
+      run: echo "AZURE_CONFIG_DIR=$RUNNER_TEMP/csl-azure" >> "$GITHUB_ENV"
+    - name: OIDC authentication
+      uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c
+      with:
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        audience: api://AzureADTokenExchange
+    - name: Dispatch to isolated plan VM
+      id: execute
+      env:
+        AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+        AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+        AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        EXEC_RG: ${{ secrets.EXEC_RG }}
+        EXEC_VM: ${{ secrets.EXEC_VM }}
+        LAB_RESOURCE_GROUP: ${{ secrets.LAB_RESOURCE_GROUP }}
+        TFSTATE_STORAGE_ACCOUNT: ${{ secrets.TFSTATE_STORAGE_ACCOUNT }}
+        TFSTATE_CONTAINER: ${{ secrets.TFSTATE_CONTAINER }}
+        EXPECTED_ACTION: ${{ vars.LAB44_EXPECTED_ACTION }}
+        PHASE: plan
+      run: python3 exercises/day44-45/scripts/dispatch.py
+    - name: End hosted session
+      if: always()
+      run: az logout --output none || true
+  apply:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      AZURE_CORE_OUTPUT: none
+      AZURE_CORE_ONLY_SHOW_ERRORS: 'true'
+    environment: csl-apply
+    needs: plan
+    if: vars.LAB44_MODE == 'apply' || vars.LAB44_MODE == 'destroy'
+    steps:
+    - name: Check out reviewed source
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      with:
+        persist-credentials: false
+    - name: Private Azure session
+      run: echo "AZURE_CONFIG_DIR=$RUNNER_TEMP/csl-azure" >> "$GITHUB_ENV"
+    - name: OIDC authentication
+      uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c
+      with:
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        audience: api://AzureADTokenExchange
+    - name: Dispatch to isolated apply VM
+      id: execute
+      env:
+        AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+        AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+        AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        EXEC_RG: ${{ secrets.EXEC_RG }}
+        EXEC_VM: ${{ secrets.EXEC_VM }}
+        LAB_RESOURCE_GROUP: ${{ secrets.LAB_RESOURCE_GROUP }}
+        TFSTATE_STORAGE_ACCOUNT: ${{ secrets.TFSTATE_STORAGE_ACCOUNT }}
+        TFSTATE_CONTAINER: ${{ secrets.TFSTATE_CONTAINER }}
+        EXPECTED_ACTION: ${{ vars.LAB44_EXPECTED_ACTION }}
+        PHASE: apply
+        PLAN_DIGEST: ${{ needs.plan.outputs.digest }}
+        PLAN_RUN_KEY: ${{ needs.plan.outputs.run_key }}
+      run: python3 exercises/day44-45/scripts/dispatch.py
+    - name: End hosted session
+      if: always()
+      run: az logout --output none || true

@@ -1,0 +1,7 @@
+**/.terraform/
+*.tfstate*
+*.tfplan
+*.tfvars*
+backend.hcl
+__pycache__/
+private/
