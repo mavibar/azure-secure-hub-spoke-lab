@@ -60,7 +60,7 @@ def main(job):
     for name in ('main.tf','.terraform.lock.hcl'):
         (root/name).write_bytes(base64.b64decode(job['files'][name],validate=True))
     config={'storage_account_name':job['storage'],'container_name':job['container'],'key':'day42-43.tfstate',
-        'use_msi':True,'use_azuread_auth':True,'use_cli':False,'use_oidc':False,'client_id':job['client'],
+        'use_msi':True,'use_azuread_auth':True,'use_cli':False,'use_oidc':False,
         'tenant_id':job['tenant'],'subscription_id':job['subscription'],'lookup_blob_endpoint':False}
     backend=root/'backend.hcl'
     backend.write_text(''.join(k+' = '+json.dumps(v)+'\n' for k,v in config.items()))
