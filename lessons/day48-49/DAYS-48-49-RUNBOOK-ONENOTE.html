@@ -1,0 +1,191 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Days 48–49 — Private storage access lesson</title><style>
+body{font-family:Calibri,Arial,sans-serif;font-size:12pt;line-height:1.5;color:#203744;background:white;max-width:1020px;margin:30px auto;padding:0 22px}
+h1{font-size:25pt;color:#15567c}h2{font-size:18pt;color:#15567c;margin-top:32px}h3{font-size:14pt;margin-top:24px}p{margin:12px 0}li{margin:6px 0}
+pre{font-family:Consolas,monospace;font-size:10.5pt;line-height:1.5;background:#f1f4f7;border-left:4px solid #2b7caf;padding:14px;white-space:pre-wrap;overflow-wrap:anywhere}
+code{font-family:Consolas,monospace;font-size:.94em}pre code{font-size:inherit}a{color:#075c92}img{max-width:100%;height:auto}
+@media print{body{margin:0;font-size:11pt}h2,h3{break-after:avoid}pre{font-size:9pt}}
+</style></head><body><h1>Days 48–49 — Prove private storage access</h1>
+<p><strong>November 24, 2026 · Personal Azure · PowerShell 7 · 60-minute practical lab · About 140 minutes altogether</strong></p>
+<p><strong>Security question:</strong> Can a private workload read a dummy blob while an external caller with a container data-reader assignment is blocked by the public network boundary?</p>
+<p>Day 48 covers the private endpoint and DNS. Day 49 tests public-access prevention. They share one temporary environment and one cleanup. The assistant prepares and tests the infrastructure; you inspect the design, predict results, run the evidence test and write the security decision. No new pipeline or OIDC setup is required.</p>
+<h2>Today&#x27;s rhythm</h2>
+<ul>
+<li>30 minutes: focused prelesson below.</li>
+<li>10 minutes: break and open the prepared lesson.</li>
+<li>60 minutes: practical work, <strong>including cleanup</strong>.</li>
+<li>15 minutes: eight original certification-style questions.</li>
+<li>15 minutes: review explanations, concentrating on missed concepts.</li>
+<li>10 minutes: write the final ticket conclusion. Total: 140 minutes.</li>
+</ul>
+<p>Stop new testing at practical minute 45. A broken helper gets five minutes of triage, then returns to the assistant. Do not turn setup troubleshooting into an extra workday. Lesson numbers track objectives, not overdue calendar dates.</p>
+<h2>Prelesson — 30 minutes</h2>
+<p><strong>Minutes 0–17 — two specific Microsoft Learn units.</strong> Read <a href="https://learn.microsoft.com/en-us/training/modules/design-implement-private-access-to-azure-services/3-define-private-link-service-private-endpoint">Define Private Link Service and private endpoint</a>, then <a href="https://learn.microsoft.com/en-us/training/modules/design-implement-private-access-to-azure-services/4-integrate-private-link-dns">Integrate private endpoint with Domain Name Service</a>. Read these units only; do not deploy their example environment. Focus on endpoint versus service endpoint, and the role of the private DNS zone and VNet link.</p>
+<p><strong>Minutes 17–27 — the briefing.</strong></p>
+<p>Imagine an application stores internal reports in Blob Storage. Its managed identity has permission to read reports. That answers <strong>who may read</strong>, but it does not establish <strong>which network path may reach the data</strong>. A security review must assess both.</p>
+<p>A <strong>private endpoint</strong> provides a private IP in a subnet for access to a specific service resource and subresource. Today that subresource is <code>blob</code>. It does not move the storage account into your VNet, and one Blob endpoint does not automatically cover Files, Queues, Tables or every storage account. A service endpoint instead identifies an authorized subnet to a service&#x27;s public endpoint; it is not a private IP for that service. <a href="https://learn.microsoft.com/en-us/azure/storage/common/storage-private-endpoints">Storage private endpoints</a></p>
+<p>The application continues using <code>ACCOUNT.blob.core.windows.net</code>. Inside our linked VNet, DNS resolves that name through the private-link name to the private endpoint&#x27;s A record. Outside the VNet, the same application name can resolve publicly. The private zone is <code>privatelink.blob.core.windows.net</code>; its VNet link makes that zone available to our VM. The endpoint&#x27;s DNS zone group manages the service&#x27;s record. Registration is disabled on the VNet link because we are resolving an endpoint record, not automatically registering VM hostnames. <a href="https://learn.microsoft.com/en-us/azure/private-link/private-endpoint-dns">Private endpoint DNS</a></p>
+<p>Creating a private endpoint does <strong>not</strong> automatically turn off public network access. Our separate storage setting is <code>publicNetworkAccess=Disabled</code>. That distinction is the connection to your policy lesson: deployment intent and observed behavior need separate evidence. An approved endpoint alone is insufficient proof of public-access prevention. <a href="https://learn.microsoft.com/en-us/azure/storage/common/storage-network-security-set-default-access">Public network access setting</a></p>
+<p>A private IP is also not a permission grant. The VM uses its system-assigned managed identity to request a Storage access token. Its <strong>Storage Blob Data Contributor</strong> assignment is limited to this lesson&#x27;s single container. Contributor is used because preparation writes one dummy blob; a production read-only consumer should instead be evaluated for <strong>Storage Blob Data Reader</strong>. Your existing signed-in user receives a temporary <strong>Storage Blob Data Reader</strong> assignment on that same dummy container for the external test. No new user is created. Both assignments are removed with the fixture. These are two identities; we verify their intended scopes and do not claim a same-identity comparison. <a href="https://learn.microsoft.com/en-us/azure/storage/blobs/assign-azure-role-data-access">Blob roles and scopes</a></p>
+<p>The private request runs inside the VM. The external request runs on your host, outside the lesson VNet, using its existing Azure sign-in. Both use the same dummy blob and normal HTTPS hostname with certificate validation. During preparation, forcing a public destination from the associated VNet still returned 200, so that approach was rejected as an outside-access test. Microsoft documents that traffic from a VNet associated with a private endpoint remains allowed. The original result is retained privately; no firewall setting was relaxed. <a href="https://learn.microsoft.com/en-us/azure/storage/common/storage-private-endpoints">Storage endpoint behavior</a></p>
+<p>There are four distinct evidence layers: configuration says what should happen; DNS shows where a name resolves; the authenticated request shows an operation&#x27;s result; the security conclusion states what that evidence establishes. A DNS result alone proves no data access. A generic 403 alone proves no particular cause. A private 200 plus an external 403 with <code>AuthorizationFailure</code>, verified data-role assignments and disabled public access supports this bounded test. The external role assignment is read back, but we do not separately prove its effective data permission through a private route; retain that limit in the conclusion.</p>
+<p>For RMF-style documentation, connect the scoped network restriction to boundary protection, the container role to least privilege, and the saved inventory to configuration evidence. These are useful inputs to assessment; this small lab is not an ATO or proof of comprehensive control compliance.</p>
+<p><strong>Minutes 27–30 — predict before running anything.</strong> Write your expected DNS result for your host and the VM. Predict the private and public HTTP outcomes. Then answer: would adding Owner to the VM identity be a sensible fix for failed private DNS? Explain why.</p>
+<h2>Prepared environment and cost boundary</h2>
+<p>One fresh resource group contains a small Ubuntu VM, two-subnet VNet, inbound-deny NSG, outbound public IP, StorageV2 account, private container, Blob private endpoint, private DNS zone/link, two container-scoped role assignments and VM auto-shutdown. Terraform manages <strong>17 resource addresses</strong>; Azure also creates supporting objects such as the VM disk and endpoint NIC.</p>
+<p>The VM has no permitted inbound SSH/RDP. Run Command uses the Azure VM agent. Its public IP supplies explicit outbound connectivity, for the VM agent; outbound access is not otherwise tightly filtered. This is a disposable test fixture, not the final enterprise egress design. Private-endpoint subnet network policies are disabled; do not attribute storage blocking to the VM&#x27;s inbound NSG.</p>
+<p>Use <strong>your personal Azure subscription</strong>, not Whizlabs. Preparation read approximately <strong>$0.42 USD month-to-date</strong> and the existing <strong>$20 monthly budget</strong>. Billing is delayed; this is a point-in-time reading, not a spending guarantee. Reserve <strong>$1 for this session</strong>, with full deletion today. The selected Linux VM&#x27;s checked retail compute price is about $0.04/hour; endpoint, IP, disk, DNS and storage add smaller charges for this short exercise. The monthly ceiling remains $20. Budget alerts notify; they do not stop resources. <a href="https://azure.microsoft.com/en-us/pricing/details/virtual-machines/linux/">VM pricing</a>, <a href="https://azure.microsoft.com/en-us/pricing/details/private-link/">Private Link pricing</a>, <a href="https://learn.microsoft.com/en-us/azure/cost-management-billing/costs/tutorial-acm-create-budgets">Budget behavior</a></p>
+<p>The private start card records the actual shutdown time. Auto-shutdown is a backup for compute cost; it does not delete disks, public IPs or endpoints. If you postpone the lesson, clean up now and ask for fresh preparation when ready. Do not leave the environment running for a future study day.</p>
+<p>Source belongs in the existing GitHub repository on <code>feat/day46-49-governance-private-link</code>, under <code>lessons/day48-49</code>. Terraform state, saved plans, runtime IDs, role principal, raw output and evidence remain under your local AppData case folder, outside Git. Historical hub/spoke state is untouched. The public lesson&#x27;s source push is not an Azure deployment: no new deployment workflow is added.</p>
+<p><strong>Live preparation passed on November 24:</strong> private DNS and HTTP 200 read; authenticated external-host HTTP 403 AuthorizationFailure; both exact data-role assignments; disabled public access; enabled auto-shutdown; 17-delete cleanup preview. Final teardown is due in Lab 6. These are preparation results, not your completed learner review.</p>
+<p><strong>Navigation accuracy:</strong> resource settings are checked through Azure APIs; the menu paths below follow current Microsoft documentation and known Portal structure, not a fresh visual inspection of every blade. The private card gives direct resource links. If a menu differs, expand the resource&#x27;s left menu, use its menu search for the named item, and stop searching after two minutes. Never hunt through Help to find configuration.</p>
+<h2>Lab 1 — Open the prepared context | minutes 0–5</h2>
+<p><strong>HOST → WINDOWS TERMINAL → tab dropdown → PowerShell 7.</strong> Keep this window open throughout the lab. Paste:</p>
+<pre><code>$caseFolder=Join-Path ([Environment]::GetFolderPath(&#x27;LocalApplicationData&#x27;)) &#x27;CloudSecurityLab/day48-49-20261124&#x27;
+$pack=Join-Path $caseFolder &#x27;lesson&#x27;
+. &quot;$pack/scripts/Connect-Lesson.ps1&quot; -CaseFolder $caseFolder
+Invoke-Item -LiteralPath &quot;$caseFolder/START-HERE.html&quot;</code></pre>
+<p>The leading dot loads the context checker into this session. <code>$c</code> contains the saved subscription and fixture names. <code>Invoke-LessonAz</code> checks the Azure CLI exit code; it adds no hidden subscription argument. <code>Invoke-Item</code> opens the private start card in your default browser.</p>
+<p><strong>Success evidence:</strong> verified personal account and ownership message; start card says live preparation checks passed. Check its shutdown time before continuing. <strong>Stop:</strong> missing group, wrong subscription, stale preparation, or an already-deallocated VM. Return to the assistant; do not recreate resources or generate new identifiers. <strong>Recovery:</strong> retain the case and state. If postponing, use Lab 6 cleanup.</p>
+<h2>Lab 2 — Inspect the network boundary | minutes 5–15</h2>
+<p><strong>STAY IN BROWSER → private start card → Storage link.</strong> Full path: Azure Portal top search → type <strong>Storage accounts</strong> → select the service → use list search for the exact account on the card → click its name → resource left menu → expand <strong>Security + networking</strong> → <strong>Networking</strong> → inspect <strong>Public network access</strong>. Expected: <strong>Disabled</strong>. If the summary only offers <strong>Manage</strong>, click Manage to inspect the setting, then <strong>Cancel</strong> or close the panel without saving. Do not select Enable. This is the documented <a href="https://learn.microsoft.com/en-us/azure/storage/common/storage-network-security-set-default-access">Networking path</a>.</p>
+<p><strong>STAY IN BROWSER → start card → Private endpoint link.</strong> Full path: top search → <strong>Private endpoints</strong> → exact <strong>pe-lesson-blob</strong> in the saved group → <strong>Overview</strong>. Inspect connection status <strong>Approved</strong>, storage target and subresource <strong>blob</strong>. In its resource menu expand <strong>Settings → DNS configuration</strong>. Match the private IP to the card and look for the storage hostname. Do not reject, disconnect or delete the connection.</p>
+<p><strong>STAY IN BROWSER → start card → Private DNS link.</strong> Full path: top search → <strong>Private DNS zones</strong> → <code>privatelink.blob.core.windows.net</code> in the saved group → expand <strong>DNS Management → Recordsets</strong> → click the A record named for today&#x27;s storage account. Expected: saved private IP. Close the record panel → same <strong>DNS Management</strong> section → <strong>Virtual network links</strong> → click <strong>link-lesson-vnet</strong>. Expected: today&#x27;s VNet; auto-registration disabled. Some Portal layouts place the record table directly in Overview; use the resource-menu search for <code>Recordsets</code> if needed. Do not edit the record or link.</p>
+<p><strong>Question:</strong> Which object supplies the private address, which supplies name resolution, and which blocks the public endpoint? Write three separate answers. <strong>Evidence:</strong> record Approved/blob, A-record match, VNet-link match and disabled public access in your notes. <strong>Stop:</strong> wrong target, wrong group, public access enabled or mismatched private IP. <strong>Recovery:</strong> preserve settings; request correction or cleanup without weakening the boundary.</p>
+<p><strong>NEXT: switch to VS Code for the short source review.</strong></p>
+<h2>Lab 3 — Review the deployed intent | minutes 15–23</h2>
+<p><strong>VS CODE → File → Open Folder → paste the lesson source folder from the private start card → Select Folder.</strong> This opens the prepared repository worktree. Ctrl+P → <code>lessons/day48-49/terraform/main.tf</code> → Enter. Ctrl+F, one at a time:</p>
+<ul>
+<li><code>public_network_access_enabled</code>: false, independently of the private endpoint.</li>
+<li><code>subresource_names</code>: blob only.</li>
+<li><code>private_dns_zone_id</code>: links the DNS zone to the VNet.</li>
+<li><code>role_definition_name</code>: data role; inspect the preceding <code>scope</code> for the single container.</li>
+<li><code>DenyAllInbound</code>: applies to the tester NIC, not the storage service.</li>
+</ul>
+<p>You are reading Terraform, not applying it. A <code>resource</code> block declares desired infrastructure. References such as <code>azurerm_storage_container.lesson.id</code> derive the real scope after creation. Variables supply per-session identifiers without hardcoding yesterday&#x27;s account or state. Preparation first created 16 resources, then added only the external reader assignment through a reviewed one-create plan. The final source declares 17 resources. No older resources were changed.</p>
+<p><strong>NOW BROWSER → GitHub repository → Code tab → branch dropdown → <code>feat/day46-49-governance-private-link</code> → lessons → day48-49 → terraform → main.tf.</strong> This is the source record. Use the latest commit link to see the change description; do not open Actions expecting a deployment run for this lesson. The assistant applied the isolated Terraform plan locally using Azure CLI authentication.</p>
+<p><strong>Question:</strong> A developer suggests replacing the container role scope with the subscription “to avoid permission issues.” Accept or reject, and why? <strong>Evidence:</strong> source branch/commit from the card and your scope decision. <strong>Stop:</strong> source and card revision disagree. <strong>Recovery:</strong> resolve the revision before active tests; do not apply from another folder.</p>
+<p><strong>NEXT: return to the same PowerShell window.</strong></p>
+<h2>Lab 4 — Compare DNS and authenticated traffic | minutes 23–35</h2>
+<p><strong>POWERSHELL — first inspect the service&#x27;s current configuration.</strong></p>
+<pre><code>$storage=Invoke-LessonAz storage account show --name $c.Storage --resource-group $c.RG --subscription $c.Subscription -o json | ConvertFrom-Json -DateKind String
+[pscustomobject]@{
+  PublicNetworkAccess=$storage.publicNetworkAccess
+  SharedKeyAllowed=$storage.allowSharedKeyAccess
+  AnonymousBlobAllowed=$storage.allowBlobPublicAccess
+  DefaultAction=$storage.networkRuleSet.defaultAction
+} | Format-List
+Resolve-DnsName &quot;$($c.Storage).blob.core.windows.net&quot; -Type A -DnsOnly |
+  Select-Object Name,Type,IPAddress,NameHost</code></pre>
+<p><code>show</code> reads a resource. <code>--resource-group</code> and <code>--subscription</code> select the exact scope. <code>-o json</code> requests structured output; <code>ConvertFrom-Json</code> turns it into PowerShell properties. <code>Resolve-DnsName -Type A</code> requests IPv4 resolution; <code>-DnsOnly</code> avoids other Windows name-resolution methods. Your host is outside this lesson VNet, so a public address is expected. Disabled public access does not mean public DNS must disappear.</p>
+<p><strong>Then run the prepared traffic test once:</strong></p>
+<pre><code>&amp; &quot;$pack/scripts/Test-PrivateAccess.ps1&quot; -CaseFolder $caseFolder</code></pre>
+<p>The ampersand runs the script. It asks Azure Run Command to execute the private DNS/read probe inside the VM, then verifies your existing user and its exact container reader assignment before issuing an authenticated external read from the host. Each origin obtains its own token; tokens stay in memory, are not transferred between machines, and are never printed. Blob content is not displayed. Both connections retain hostname/TLS validation. The learner command does not write the blob; <code>-Seed</code> is reserved for assistant preparation.</p>
+<p>Expected results: <code>private_vm.dns</code> contains the saved private IP; <code>private_vm.private.status=200</code>; <code>external_host.status=403</code>; <code>external_host.error_code=AuthorizationFailure</code>; <code>external_host.reader_assignment_verified=true</code>; <code>same_identity=false</code>; top-level <code>pass=true</code>. Run Command completing successfully alone is insufficient—both request results must match.</p>
+<p><strong>Evidence:</strong> <code>latest-test.xml</code> plus timestamped private probe results; note the two request IDs and statuses locally. <strong>Stop:</strong> timeout, private 403, wrong DNS or unexpected public success. Do not change firewall rules, grant Owner, add your home IP or disable TLS checks. <strong>Recovery:</strong> keep the exact case and return the failure to the assistant; finish with cleanup rather than repeated requests.</p>
+<p><strong>NEXT: remain in PowerShell to read the same result, then write the review.</strong></p>
+<h2>Lab 5 — Investigate and decide | minutes 35–45</h2>
+<pre><code>$result=Import-Clixml -LiteralPath &quot;$caseFolder/latest-test.xml&quot;
+$result | ConvertTo-Json -Depth 10</code></pre>
+<p><code>Import-Clixml</code> reloads the saved PowerShell evidence; <code>-Depth 10</code> keeps the nested result fields visible. This is a read of evidence, not another cloud test.</p>
+<p><strong>Your review ticket:</strong> “The application team claims that creating a private endpoint alone makes storage private. They also ask for subscription Owner on the VM identity if a future request fails.” Use your observed results and source to approve or reject those two claims. Explain the separate roles of DNS, public network access and data authorization.</p>
+<p><strong>One short diagnostic scenario — hypothetical, not a defect secretly injected into your lab:</strong> tomorrow the same VM resolves the storage name publicly and its request fails. The endpoint remains Approved and its private IP has not changed. Choose the first investigation: role assignment, private DNS VNet link/resolver path, or VM password. State the evidence that would support your choice. Do not delete the live DNS link to reproduce this scenario.</p>
+<p>Write five lines: requirement; inspected configuration; observed traffic; scope/limitations; recommendation. Include that only this VM private read and this external host/user request were tested. They use different identities, and an assigned role is not independently demonstrated effective permission through a private route. On-premises DNS, other storage subresources, exfiltration controls and organization-wide compliance remain outside this demonstration.</p>
+<p><strong>Success:</strong> your conclusion is supported by both configuration and a positive/negative request pair. <strong>Stop:</strong> minute 45, even if the explanation needs more study. <strong>Recovery:</strong> preserve partial results and proceed to cleanup. Explanations can continue after resources are gone.</p>
+<h2>Lab 6 — Verified cleanup | minutes 45–60</h2>
+<p><strong>SAME POWERSHELL WINDOW.</strong> This removes today&#x27;s fixture only. It reads ownership and inventory, builds a destroy plan against today&#x27;s private state, checks its scope and asks for the exact group name before applying it.</p>
+<pre><code>$c.RG
+&amp; &quot;$pack/scripts/Remove-Lesson.ps1&quot; -CaseFolder $caseFolder</code></pre>
+<p>Copy the displayed group name into the confirmation prompt. Expected: <strong>CLEANUP VERIFIED</strong>, the group absent and Terraform state empty. The script retains private evidence and source. Both container role assignments are deleted as part of the same teardown. VM, disk, IP, endpoint and DNS objects are not intentionally retained.</p>
+<p><strong>BROWSER confirmation:</strong> private card → Resource group link → Refresh. Expected: resource no longer found. Or top search → <strong>Resource groups</strong> → search the exact group → <strong>Refresh</strong> → no matching group. A stale browser tab is not a failed delete; use the CLI readback:</p>
+<pre><code>az group exists --name $c.RG --subscription $c.Subscription -o tsv
+if($LASTEXITCODE -ne 0){throw &#x27;Cleanup verification query failed.&#x27;}</code></pre>
+<p>Expected <code>false</code>. <strong>Stop:</strong> destroy error, unexpected inventory, remaining group or nonempty state. <strong>Recovery:</strong> preserve the private folder and ask the assistant for exact cleanup recovery. To stop compute charges while recovery is pending, use only this saved VM:</p>
+<pre><code>az vm deallocate --resource-group $c.RG --name $c.VM --subscription $c.Subscription --output none
+if($LASTEXITCODE -ne 0){throw &#x27;Deallocation failed or the VM may already be absent; request readback.&#x27;}</code></pre>
+<p>Deallocation is not full cleanup. Do not delete state, clear locks, remove a whole subscription, or recreate anything. If you hand cleanup to this work chat, say “clean up the recorded Days 48–49 fixture”; the assistant can perform it and report verification.</p>
+<h2>Quiz — 15 minutes, closed notes</h2>
+<p>These are original practice questions, not copied exam items. Choose the best answer unless the question says otherwise.</p>
+<p><strong>1.</strong> A private endpoint is Approved. A client outside the VNet still successfully reads a blob using valid credentials. What is the first missing design control to investigate?</p>
+<ul>
+<li>A. Turn off private DNS auto-registration.</li>
+<li>B. The storage account&#x27;s public network access/firewall configuration.</li>
+<li>C. Add another private endpoint with the same subresource.</li>
+<li>D. Give the client Reader at subscription scope.</li>
+</ul>
+<p><strong>2.</strong> Your VM resolves the usual storage name to the private IP, but an authenticated read returns 403. Which conclusion is justified?</p>
+<ul>
+<li>A. DNS is wrong because private addresses cannot return HTTP responses.</li>
+<li>B. The storage data role is definitely missing.</li>
+<li>C. Name resolution succeeded; inspect the specific error and authorization before choosing a cause.</li>
+<li>D. Disable public access again to repair the role assignment.</li>
+</ul>
+<p><strong>3.</strong> You must evaluate whether an external client is blocked while private access works. Which evidence set is strongest?</p>
+<ul>
+<li>A. Compare an anonymous request on your laptop with an administrator&#x27;s Portal view.</li>
+<li>B. Ping the private IP and record a timeout.</li>
+<li>C. Observe a private read, verify the external caller&#x27;s exact data-role assignment, and capture its public request result with configuration readback; document that the identities differ.</li>
+<li>D. Take a screenshot of the endpoint&#x27;s Approved status.</li>
+</ul>
+<p><strong>4. Choose TWO.</strong> Which statements correctly describe today&#x27;s DNS configuration?</p>
+<ul>
+<li>A. Applications should replace their normal hostname with the private IP in production connection strings.</li>
+<li>B. The VNet link makes the private zone available to the VNet&#x27;s Azure-provided DNS resolution.</li>
+<li>C. A private A record grants Blob Data Reader to the VM.</li>
+<li>D. A DNS zone group associates the endpoint with the private DNS zone and manages its service record.</li>
+</ul>
+<p><strong>5.</strong> The requirement changes to allow Azure Files as well as Blob over private connectivity. What must the reviewer evaluate?</p>
+<ul>
+<li>A. Whether the Blob endpoint&#x27;s role is Owner.</li>
+<li>B. A File service private endpoint and the corresponding DNS and service authorization design.</li>
+<li>C. Enabling public blob containers.</li>
+<li>D. Nothing; an account-level endpoint automatically covers every storage service.</li>
+</ul>
+<p><strong>6.</strong> The workload only needs to read an existing container. Which role/scope is the best starting proposal?</p>
+<ul>
+<li>A. Owner at subscription scope.</li>
+<li>B. Contributor at the storage account.</li>
+<li>C. Storage Blob Data Reader at the required container, with the network path separately permitted.</li>
+<li>D. No role, because a private endpoint replaces authentication.</li>
+</ul>
+<p><strong>7.</strong> The host still resolves the account publicly after public network access is disabled. The VM privately reads with 200 and the external host&#x27;s authenticated request gets the expected 403. Which assessment is best?</p>
+<ul>
+<li>A. Failure: public DNS must cease to exist.</li>
+<li>B. Evidence supports private allow/public deny for the tested workload; public DNS resolution alone is not an access bypass.</li>
+<li>C. All access from every identity and network has been proven safe.</li>
+<li>D. The VM NSG&#x27;s inbound rule is necessarily the cause of the storage 403.</li>
+</ul>
+<p><strong>8.</strong> Auto-shutdown ran, the VM is deallocated, and the monthly budget alert has not fired. Which closeout is appropriate?</p>
+<ul>
+<li>A. All charges have stopped and cleanup is complete.</li>
+<li>B. Delete today&#x27;s recorded fixture and verify absence; noncompute resources can still bill, and budget alerts are not a hard spending cap.</li>
+<li>C. Delete only the local Terraform state.</li>
+<li>D. Remove the $20 budget to avoid notification delays.</li>
+</ul>
+<h2>Answer review — 15 minutes</h2>
+<ol>
+<li><strong>B.</strong> Endpoint creation and public-access restriction are separate. The valid external read means the public path needs review; DNS registration is unrelated to that permission.</li>
+<li><strong>C.</strong> Resolution is one layer. A specific 403 may involve data permissions, token context or another service restriction. Do not infer the cause from the status alone.</li>
+<li><strong>C.</strong> Configuration, verified assignment scope and observed request outcomes support a bounded conclusion. Different identities and untested effective external-role permission remain explicit limitations.</li>
+<li><strong>B and D.</strong> The VNet link controls zone availability; the zone group manages the endpoint&#x27;s record. DNS neither grants data rights nor requires IP-based connection strings.</li>
+<li><strong>B.</strong> Endpoints target subresources. Files has its own connectivity, DNS and authorization requirements.</li>
+<li><strong>C.</strong> Read-only data permission at the smallest required scope. Management-plane Contributor is not the intended substitute for a Blob data role.</li>
+<li><strong>B.</strong> DNS can still return a public address that the service refuses to serve for this request. Do not generalize one test to every access path.</li>
+<li><strong>B.</strong> Verify teardown of all temporary resources. Budget delivery and billing lag are not shutdown controls.</li>
+</ol>
+<p>If you miss two or more, spend the review block on those concepts instead of adding another lab. For Alan Rodrigues AZ-305, pin the lecture topic <strong>private endpoints, service endpoints and name resolution</strong>; match the title in your course edition rather than assuming a lecture number. It can replace part of today&#x27;s review or be tomorrow&#x27;s optional study.</p>
+<h2>Compact results — final 10 minutes</h2>
+<p>Copy this into OneNote. Keep runtime names/IDs and request IDs in private notes only. A sanitized summary can be committed later; no <code>git add .</code> from an evidence folder.</p>
+<ul>
+<li>Execution date / duration:</li>
+<li>Day 48: COMPLETE / PARTIAL / BLOCKED / FAILED EXPECTATION.</li>
+<li>Day 48 evidence: exact Blob target/Approved; private A-record and VNet-link match; VM private resolution observed:</li>
+<li>Day 49: COMPLETE / PARTIAL / BLOCKED / FAILED EXPECTATION.</li>
+<li>Day 49 evidence: public access Disabled; VM private 200/host public 403; different identities and verified assignment scope; expected error code; UTC/request IDs recorded privately:</li>
+<li>Security decision and one limitation:</li>
+<li>Quiz score / concept to revisit:</li>
+<li>Cleanup: VERIFIED / INCOMPLETE; exact group absence and empty state:</li>
+<li>Cost: preparation snapshot about $0.42 month-to-date; today&#x27;s final charge pending delayed billing. Budget $20/month unchanged.</li>
+</ul>
+<p><strong>COMPLETE</strong> means the day&#x27;s required observed evidence exists. <strong>PARTIAL</strong> means some objectives remain unproven. <strong>BLOCKED</strong> means a prerequisite prevented the test. <strong>FAILED EXPECTATION</strong> means an executed test contradicted the expected behavior. Assistant preparation success does not automatically complete your learner review. Cleanup status is recorded independently.</p>
+<p>Earlier monitoring/telemetry gaps and delayed subscription billing reviews remain separate carry-forward work. Today adds no logging connector, Sentinel rule or paid Defender plan. You do not need to repeat old cost or monitoring exercises to complete this lesson.</p></body></html>
