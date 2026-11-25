@@ -17,3 +17,7 @@ Runtime files, plans, state, tokens, private evidence and raw API results must r
 Live preparation verified November 24, 2026: VM private DNS matched its Blob endpoint, dummy seed returned 201, private read returned 200, authenticated external-host read returned 403 AuthorizationFailure, public access was Disabled, external reader scope/principal matched the intent, and auto-shutdown was Enabled. A 17-delete Terraform cleanup preview passed. Full teardown remains due after the learner session; it has not been performed during preparation.
 
 Learner review and quiz completion are not inferred from preparation success. Keep request IDs, principals and billing exports private. The initial 16-resource fixture and later one-role addition were individually planned; the final source declares 17 resources. Historical Terraform and previous lesson branches were not changed.
+
+## November 25 closeout update
+
+The user reported Days48–49 completed. The saved learner test at16:07UTC November24 records private200 and authenticated external403 AuthorizationFailure, with different identities explicitly recorded. Cleanup was recorded at16:33UTC. Fresh November25 readback confirms the exact group absent and local Terraform state empty. This supersedes the preparation-only teardown-pending statement above. No resources were recreated for the Day50 review; detailed evidence remains private.

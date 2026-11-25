@@ -1,0 +1,5 @@
+ResourceContainers
+| where type =~ 'microsoft.resources/subscriptions/resourcegroups'
+| where name startswith 'rg-csl-policy-d46-' or name startswith 'rg-csl-private-d48-'
+| project name, location, subscriptionId
+| order by name asc

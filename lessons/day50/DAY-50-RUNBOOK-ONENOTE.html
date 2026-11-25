@@ -1,0 +1,219 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Day 50 — Governance evidence and security closeout</title><style>
+body{font-family:Calibri,Arial,sans-serif;font-size:12pt;line-height:1.5;color:#203744;background:white;max-width:1020px;margin:30px auto;padding:0 22px}
+h1{font-size:25pt;color:#15567c}h2{font-size:18pt;color:#15567c;margin-top:32px}h3{font-size:14pt;margin-top:24px}p{margin:12px 0}li{margin:6px 0}
+pre{font-family:Consolas,monospace;font-size:10.5pt;line-height:1.5;background:#f1f4f7;border-left:4px solid #2b7caf;padding:14px;white-space:pre-wrap;overflow-wrap:anywhere}
+code{font-family:Consolas,monospace;font-size:.94em}pre code{font-size:inherit}a{color:#075c92}img{max-width:100%;height:auto}
+@media print{body{margin:0;font-size:11pt}h2,h3{break-after:avoid}pre{font-size:9pt}}
+</style></head><body><h1>Day 50 — Governance evidence and security closeout</h1>
+<p><strong>November 25, 2026 · Personal Azure · PowerShell 7 · 60-minute practical lab · About 140 minutes altogether</strong></p>
+<p><strong>Day 50 should stand alone.</strong> The current curriculum lists governance closeout after Days 46–49. Today you turn the tagging, location and private-access experiments into a defensible security review. Combining another deployment topic would crowd out the investigation and explanation you wanted to practice.</p>
+<p><strong>Your assignment:</strong> Decide whether the narrowly scoped governance lab can be closed, correct an inaccurate assessment draft, and identify what the evidence does not establish. The assistant has prepared the evidence and tested both inventory queries. Your job is the review and decision.</p>
+<h2>Today&#x27;s rhythm</h2>
+<ul>
+<li>30 minutes: targeted Microsoft Learn and the briefing below.</li>
+<li>10 minutes: break and open the prepared materials.</li>
+<li>60 minutes: guided practical review, including closeout.</li>
+<li>15 minutes: eight original certification-style questions.</li>
+<li>15 minutes: explanations and targeted revision.</li>
+<li>10 minutes: final learning note. Total: 140 minutes.</li>
+</ul>
+<p>The practical timer starts at Lab 1. At minute50, stop adding investigations and finish the decision. A setup failure gets five minutes, then returns to the assistant. Do not recreate yesterday&#x27;s resources to make a screenshot possible.</p>
+<h2>Prelesson — 30 minutes</h2>
+<p><strong>Minutes 0–8: two AZ-305 units.</strong> Read <a href="https://learn.microsoft.com/en-us/training/modules/design-governance/2-design-for-governance">Design for governance</a> and <a href="https://learn.microsoft.com/en-us/training/modules/design-governance/8-design-for-role-based-access-control">Design for role-based access control</a>. Focus on organizational requirements, responsibility and assignment scope. Skip the rest of the module today.</p>
+<p><strong>Minutes 8–20: read this briefing and explain each example aloud.</strong></p>
+<p>A security reviewer does more than confirm that a command succeeded. Start with a requirement, identify its implementation and scope, then ask what observed evidence supports your conclusion. “The cloud is secure” cannot be tested as one claim. “The specified NSG creation in the disallowed region was rejected by this exact policy assignment” can.</p>
+<p>Use four evidence layers. <strong>Intent</strong> is the Terraform definition or approved design. <strong>Configuration</strong> is the setting or assignment read back from Azure. <strong>Behavior</strong> is the actual operation and result. <strong>Assessment</strong> is your bounded judgment about that evidence. Source code alone does not prove deployment; a successful apply does not establish every security outcome.</p>
+<p>You already have a good example: Audit allowed a missing Owner tag to exist, then you restored the tag manually. Later compliance results can confirm the resource satisfied the assigned rule. They do not change Audit into an automatic repair mechanism. The Deny experiment has a different claim: a specific request was rejected with <code>RequestDisallowedByPolicy</code> naming the expected assignment. The distinction changes what you can recommend for an enterprise requirement.</p>
+<p><strong>Time matters.</strong> A saved Policy export can include several evaluations of the same resource under the same assignment. Count the latest record for each assignment/resource pair when describing the latest saved assessment. Keep its evaluation timestamp. The result remains a historical observation after the resource is deleted; it is not today&#x27;s live compliance state. Policy evaluations are asynchronous, so a corrected configuration and a displayed compliance result can reflect different times. <a href="https://learn.microsoft.com/en-us/azure/governance/policy/how-to/get-compliance-data">Policy evaluation and compliance data</a></p>
+<p><strong>Scope matters just as much.</strong> Both training policies were assigned to one disposable group and selected NSGs. The private endpoint targeted Blob Storage, not every storage service. The VM and external user had different container-scoped data roles. Yesterday&#x27;s private200/external403 result supports the observed requests, but it is not a same-identity experiment. The external role assignment was verified; its effective permission was not independently exercised through a private route. Good reporting preserves that distinction rather than hiding it under a green PASS.</p>
+<p>Today you will use KQL in <strong>Azure Resource Graph Explorer</strong>. Its <code>Resources</code> table describes resource inventory; <code>ResourceContainers</code> includes resource groups and subscriptions. This is a different query service from Log Analytics, where you previously used <code>AzureActivity</code> for collected events. Knowing the query language does not make the tables interchangeable. Resource Graph can lag changes and shows resources you are authorized to read. An empty query needs a scope and filter check before interpretation. <a href="https://learn.microsoft.com/en-us/azure/governance/resource-graph/overview">Resource Graph overview</a></p>
+<p>For closeout, separate a <strong>known failed requirement</strong> from an <strong>evidence limitation</strong>. A proven unauthorized successful request is a finding. A network path you never tested is an unassessed area; it is not automatically a demonstrated vulnerability. Both can need follow-up, but their wording and priority differ. Give follow-up work a responsible role, a target date or next review point, and the evidence needed to close it.</p>
+<p>Your recommendation is also separate from formal risk acceptance. An assessor describes results and limitations; an authorized decision-maker accepts risk under the organization&#x27;s process. In RMF terms, implementation, assessment and authorization are distinct activities. A small lab report can practice the structure of assessment evidence without pretending to grant an ATO. <a href="https://csrc.nist.gov/pubs/sp/800/37/r2/final">NIST SP800-37 Rev.2</a></p>
+<p>This is also a useful preparation for agentic security operations: an automated summary is a claim to verify. A convincing sentence should not receive more trust than its underlying scope, timestamps and observations justify. Today&#x27;s deliberately flawed draft is a training scenario, not an actual agent&#x27;s production output.</p>
+<p><strong>Minutes 20–30: commit to three predictions.</strong> Can a resource be corrected now while an older evaluation remains noncompliant in an export? Can an empty retired-group query coexist with seven other resources in the subscription? Can you close a bounded lab while recording untested enterprise scenarios? Write one sentence explaining each answer before looking at the quiz explanations.</p>
+<h2>Prepared materials and boundaries</h2>
+<p>Use <strong>your personal Azure subscription</strong>, not Whizlabs. The private start card supplies its exact ID and the saved evidence locations. Day 50 performs Azure reads and writes only local evidence/notes. No new cloud infrastructure or role grants are needed. The existing monthly ceiling remains $20; the earlier billing and monitoring follow-ups stay separate from this lesson.</p>
+<p>Preparation verified that both Days 46–47 and Days 48–49 groups are absent, their local Terraform states contain zero addresses, and both custom Day 46 policy definitions are absent. Yesterday&#x27;s learner test was recorded November24 at16:07UTC, with private200 and external403 AuthorizationFailure. The Day 48 cleanup record is November24 at16:33UTC. You reported Days 48–49 completed; these observations corroborate the technical test and cleanup.</p>
+<p>The source and sanitized closeout notes are on GitHub branch <code>feat/day50-governance-review</code>. Historical Terraform state is unchanged. Runtime IDs, raw JSON, state, detailed evidence and your draft review stay in your local AppData case folder. The private card is the starting point, not a public portfolio attachment.</p>
+<p><strong>GUI accuracy:</strong> the paths follow Microsoft documentation; today&#x27;s current resource-menu layout was not visually re-inspected. Use the stated menu search or the exact-scope PowerShell fallback after two minutes. An empty screen for a retired resource is expected.</p>
+<h2>Lab 1 — Open the review context | minutes 0–5</h2>
+<p><strong>HOST → Windows Terminal → tab dropdown → PowerShell 7.</strong> Keep this window open.</p>
+<pre><code>$caseFolder=Join-Path ([Environment]::GetFolderPath(&#x27;LocalApplicationData&#x27;)) &#x27;CloudSecurityLab/day50-20261125&#x27;
+$pack=Join-Path $caseFolder &#x27;lesson&#x27;
+. &quot;$pack/scripts/Connect-Review.ps1&quot; -CaseFolder $caseFolder
+Invoke-Item -LiteralPath &quot;$caseFolder/START-HERE.html&quot;
+$review=Import-Clixml -LiteralPath &quot;$caseFolder/latest-review.xml&quot;
+$review.Cleanup | Format-Table Case,GroupExists,StateAddressCount,Verified</code></pre>
+<p>The leading dot loads the small context checker into this session. <code>$d46</code> and <code>$d48</code> refer to the saved cases; <code>$review</code> is today&#x27;s collected evidence. <code>Import-Clixml</code> reads saved PowerShell data. <code>Format-Table</code> changes its display, not Azure.</p>
+<p><strong>Expected:</strong> personal-context confirmation; both group-existence values False, both state counts0, both Verified values True. <strong>Question:</strong> why is a deleted group the expected starting condition today? <strong>Evidence:</strong> checked time on the private card. <strong>Stop:</strong> wrong context, missing evidence or a live retired group. <strong>Recovery:</strong> keep the case and request investigation; do not delete an unexpected resource or rerun a preparation script.</p>
+<p><strong>NEXT: stay in this PowerShell window.</strong></p>
+<h2>Lab 2 — Reconcile the Policy history | minutes 5–18</h2>
+<p><strong>Purpose:</strong> distinguish older failures, correction evidence and the latest saved evaluation. First inspect the simple facts:</p>
+<pre><code>[pscustomobject]@{
+  BeforeHadOwner=$review.TagBeforeHasOwner
+  AfterOwner=$review.TagAfterOwner
+  AllowedProbe=$review.AllowedProbeState
+  AllowedRegion=$review.AllowedProbeLocation
+  ExactAllowedResource=$review.AllowedProbeExact
+  ExactPolicyDenial=$review.ExactPolicyDenial
+  SavedPolicyRows=$review.SavedPolicyRows
+} | Format-List</code></pre>
+<p>Expected: Owner absent before and restored afterward; the exact eastus probe succeeded; the negative probe named the correct deny assignment;20 saved Policy rows. A large export is not20 different resources.</p>
+<p>Now perform the selection yourself, using the original export:</p>
+<pre><code>$states=Import-Clixml -LiteralPath &quot;$($c.Day46)/student-policy-states.xml&quot;
+$scoped=$states | Where-Object {
+  $_.policyAssignmentId -in @($d46.OwnerAssignment,$d46.LocationAssignment) -and
+  $_.resourceId -in @($d46.ReferenceId,$d46.DriftId)
+}
+$latest=$scoped | Group-Object policyAssignmentId,resourceId | ForEach-Object {
+  $_.Group | Sort-Object {[DateTimeOffset]$_.timestamp} -Descending | Select-Object -First 1
+}
+$latest | Select-Object policyAssignmentName,complianceState,timestamp,
+  @{Name=&#x27;Resource&#x27;;Expression={($_.resourceId -split &#x27;/&#x27;)[-1]}} | Format-Table -AutoSize</code></pre>
+<p><code>Where-Object</code> filters records; <code>$_</code> means the current record. <code>-in</code> restricts this review to the exact saved assignments and two NSGs. <code>Group-Object</code> makes one group per assignment/resource pair. <code>Sort-Object -Descending</code> puts the newest timestamp first; <code>Select-Object -First 1</code> takes that record. The final display extracts the resource name from the end of its ID.</p>
+<p><strong>Expected:</strong> four rows, all Compliant, evaluated on November23 around16:39UTC. That resolves the earlier ambiguity in the mixed export. <strong>Question:</strong> rewrite “four noncompliant entries mean four current failures” into a statement supported by these results. Also state who repaired the tag: you or the Audit effect.</p>
+<p><strong>Evidence:</strong> record the four latest saved results and their timestamps as E01; the before/after and exact allow/deny tests as E02. <strong>Stop:</strong> missing rows or different assignment/resource scope. <strong>Recovery:</strong> mark the comparison PARTIAL and keep the original export; do not launch another Policy scan against deleted resources.</p>
+<p><strong>NEXT: switch to your browser for the live inventory exercise.</strong></p>
+<h2>Lab 3 — Query current resources with KQL | minutes 18–30</h2>
+<p><strong>BROWSER → Azure Portal → top search box → type Resource Graph Explorer → select the Resource Graph Explorer service.</strong> At the top, click the scope control, initially often <strong>Directory</strong> → locate your personal subscription → select only the exact subscription from the private card → confirm using the picker&#x27;s <strong>Apply</strong> or <strong>Select</strong> button. If the names are duplicated, compare IDs; do not guess by display name. Then click inside <strong>Query 1</strong>, select its existing text, and paste the KQL below. Click <strong>Run query</strong> → <strong>Results</strong>. For errors, click <strong>Messages</strong>. This follows Microsoft&#x27;s <a href="https://learn.microsoft.com/en-us/azure/governance/resource-graph/first-query-portal">Resource Graph Portal quickstart</a>.</p>
+<p><strong>KQL — paste directly into Resource Graph Explorer. No PowerShell variables or substitutions.</strong></p>
+<pre><code>Resources
+| summarize ResourceCount=count() by subscriptionId, type
+| order by type asc</code></pre>
+<p><code>Resources</code> selects inventory. <code>summarize</code> groups it; <code>count()</code> counts each resource type. <code>order by</code> makes the display predictable. Check the returned subscription ID against the card. Preparation found seven resources across seven types. These are retained resources, not a list of cleanup failures; counts may change after preparation.</p>
+<p><strong>STAY IN THE SAME QUERY EDITOR.</strong> Replace the entire query with this second block, then <strong>Run query → Results</strong>:</p>
+<pre><code>ResourceContainers
+| where type =~ &#x27;microsoft.resources/subscriptions/resourcegroups&#x27;
+| where name startswith &#x27;rg-csl-policy-d46-&#x27; or name startswith &#x27;rg-csl-private-d48-&#x27;
+| project name, location, subscriptionId
+| order by name asc</code></pre>
+<p><code>=~</code> is case-insensitive equality. <code>where</code> filters; <code>project</code> chooses the displayed columns. The name prefixes select this lesson family&#x27;s groups without runtime values in the query. Expected: zero rows. This is a prefix-based inventory check, not proof that a historical policy test passed or that the whole subscription is empty. The exact ARM group checks in Lab 1 are the stronger closeout readback for those two groups.</p>
+<p><strong>If the scope picker or query UI blocks you for two minutes, switch to PowerShell and use this tested fallback.</strong> It executes the same two saved queries with the exact subscription in the request body:</p>
+<pre><code>&amp; &quot;$pack/scripts/Refresh-Review.ps1&quot; -CaseFolder $caseFolder
+$review=Import-Clixml -LiteralPath &quot;$caseFolder/latest-review.xml&quot;
+$review.CurrentInventory | Format-Table subscriptionId,type,ResourceCount
+&#x27;Retired lesson groups found: &#x27;+@($review.RetiredLessonGroups).Count</code></pre>
+<p>The helper uses <code>az rest</code> with Resource Graph&#x27;s query API. Its HTTP POST submits a read-only query; it does not deploy or modify resources. Request files and results remain private. No CLI extension installation is required. <a href="https://learn.microsoft.com/en-us/azure/governance/resource-graph/first-query-rest-api">Resource Graph REST quickstart</a></p>
+<p><strong>Question:</strong> why can “seven resources remain” and “both training groups are gone” both be true? <strong>Evidence:</strong> note query scope, run time and counts as E03; keep any exported CSV private. <strong>Stop:</strong> unexpected subscription, truncated results, errors or a returned retired group. <strong>Recovery:</strong> preserve the result and ask for readback; do not delete the seven retained resources or broaden permissions. With a UI error, use the fallback and record the GUI exercise as PARTIAL rather than inventing success.</p>
+<p><strong>NEXT: switch to VS Code for the scope review.</strong></p>
+<h2>Lab 4 — Trace the claims back to source | minutes 30–40</h2>
+<p><strong>VS CODE → File → Open Folder → paste the repository worktree path on the private card → Select Folder.</strong> Ctrl+P → <code>lessons/day46-47/terraform/main.tf</code> → Enter. Ctrl+F → <code>effect = &quot;Audit&quot;</code> → inspect the condition; then find <code>effect = &quot;Deny&quot;</code>; then <code>resource_group_id</code>. Confirm the type selector is NSGs and the assignments target the lesson group.</p>
+<p><strong>STAY IN VS CODE.</strong> Ctrl+P → <code>lessons/day48-49/terraform/main.tf</code> → Enter. Ctrl+F → <code>resource &quot;azurerm_role_assignment&quot; &quot;dummy_writer&quot;</code>; inspect <code>principal_id</code> and <code>scope</code>. Then search <code>external_reader</code> and compare. The VM&#x27;s managed identity and your existing user are different principals. Both roles target the dummy container; neither is subscription Owner. The source records intent; yesterday&#x27;s saved execution evidence records the actual results.</p>
+<p><strong>NOW SWITCH TO POWERSHELL</strong> to inspect the recorded network facts without issuing another storage request:</p>
+<pre><code>[pscustomobject]@{
+  RecordedUtc=$review.NetworkTestUtc
+  PrivateHttp=$review.PrivateHttp
+  ExternalHttp=$review.ExternalHttp
+  ExternalCode=$review.ExternalCode
+  SameIdentity=$review.SameIdentity
+  ReaderAssignmentVerified=$review.ExternalReaderAssignmentVerified
+  PublicNetworkAccess=$review.PublicNetworkAccess
+} | Format-List</code></pre>
+<p><strong>Expected:</strong> private200, external403 AuthorizationFailure, SameIdentity False, assignment verification True, public access Disabled. <strong>Question:</strong> what should replace “the same managed identity was allowed privately and denied publicly”? <strong>Evidence:</strong> source revision from the card plus these bounded facts as E04. <strong>Stop:</strong> source/evidence contradicts the stated scope. <strong>Recovery:</strong> record the discrepancy; preserve evidence and request review. No live identity, role or network edits belong in this phase.</p>
+<p><strong>NEXT: switch to OneNote or open the prepared private decision file.</strong></p>
+<h2>Lab 5 — Correct the assessment and decide | minutes 40–50</h2>
+<p><strong>Purpose:</strong> practice the judgment that belongs to you as the security reviewer. This is a <strong>deliberately flawed training draft</strong>, not a description of a deployed enterprise:</p>
+<p>“Azure Policy automatically repaired Owner. The export contains20 independent resources with four continuing violations. The location rule protects the whole subscription. The same managed identity passed the private request and failed the public request. Resource Graph shows no resources, so there are no further charges. Approve enterprise rollout and mark every related control fully satisfied.”</p>
+<p>Annotate each sentence as <strong>SUPPORTED / REWRITE / MORE EVIDENCE NEEDED</strong>. Cite E01–E04 and the source where relevant. Do not replace an overclaim with a new one.</p>
+<p>You can write in OneNote, or <strong>PowerShell → run this command → switch to the Notepad window it opens</strong>:</p>
+<pre><code>notepad &quot;$caseFolder/REVIEW-DECISION.txt&quot;</code></pre>
+<p>Complete the prepared fields: requirement and boundary; evidence/time; corrections; remaining uncertainties; decision; follow-up owner and next review point. Recommended decision vocabulary: <strong>CLOSE THE BOUNDED LAB</strong>, <strong>PARTIAL—SPECIFY MISSING EVIDENCE</strong>, or <strong>BLOCKED—SPECIFY PREREQUISITE</strong>. Evaluate a request for enterprise rollout separately; this exercise is not sufficient evidence to authorize it.</p>
+<p>At least one follow-up should name the evidence needed, not merely say “investigate more.” Example: “Before an enterprise storage rollout, the network/security owner must validate the required on-premises DNS and access path; retain DNS results and authenticated positive/negative requests for that approved scope.” This is a proposed future test, not work to execute today.</p>
+<p><strong>Success:</strong> six draft statements assessed, a bounded decision, and one actionable follow-up. <strong>Stop:</strong> minute50. <strong>Recovery:</strong> save an unfinished review as PARTIAL and keep its next step. Your next lesson does not require pretending every enterprise risk has been assessed.</p>
+<h2>Lab 6 — Close the review and preserve evidence | minutes 50–60</h2>
+<p><strong>POWERSHELL — inspect cleanup evidence already collected today:</strong></p>
+<pre><code>&#x27;Checked UTC: &#x27;+$review.CheckedUtc
+$review.Cleanup | Format-Table Case,GroupExists,StateAddressCount,Verified
+$review.DefinitionAbsence | Format-Table Name,Absent
+git -C $c.SourceRepo status --short --branch
+if($LASTEXITCODE -ne 0){throw &#x27;Could not read repository status.&#x27;}</code></pre>
+<p>Expected: both groups absent, both states empty, both custom definitions absent. Git should show the Day 50 branch with no uncommitted lesson changes. If another program or chat changed a file, inspect it; do not reset or delete it. No new Day 50 cloud resources require teardown.</p>
+<p><strong>BROWSER → GitHub repository → Code tab → branch dropdown → <code>feat/day50-governance-review</code> → lessons → day50 → README.md.</strong> Review the sanitized technical closeout; it records preparation and prior-day evidence, not your still-unsubmitted Day 50 decision. Do not look for an Actions deployment run—none was created today.</p>
+<p>Save your decision privately using <strong>Notepad → File → Save</strong>, or finish the OneNote page. Send its sanitized conclusion back to this work chat when done; I can reconcile it into the repository. Do not run <code>git add .</code> against your AppData evidence folder. Raw IDs, JSON, state, account details and private notes stay out of Git.</p>
+<p><strong>Stop/recovery:</strong> unexpected cleanup state is an operations item for exact recovery. An absent resource or retired Policy assignment is not a reason to recreate it. Existing cost/budget and monitoring carry-forwards remain open until their own evidence closes them; today&#x27;s inventory is not a billing report.</p>
+<h2>Quiz — 15 minutes, closed notes</h2>
+<p>These are original practice questions, not actual certification exam items. Select the best answer unless instructed otherwise.</p>
+<p><strong>1.</strong> A Policy export contains older noncompliant and newer compliant evaluations for the same resource and assignment. Which report is strongest?</p>
+<ul>
+<li>A. Count every row as a different current resource.</li>
+<li>B. Select the latest record per exact assignment/resource pair and report its timestamp and scope.</li>
+<li>C. Delete the older rows from the original evidence.</li>
+<li>D. Treat every historical failure as an open current finding.</li>
+</ul>
+<p><strong>2.</strong> Terraform declares public network access disabled. What additional evidence most directly establishes observed access behavior?</p>
+<ul>
+<li>A. The filename contains “secure.”</li>
+<li>B. A successful source commit.</li>
+<li>C. Configuration readback plus appropriately scoped authenticated request outcomes.</li>
+<li>D. The assigned Owner tag.</li>
+</ul>
+<p><strong>3. Choose TWO.</strong> Which conclusions follow from yesterday&#x27;s records?</p>
+<ul>
+<li>A. The VM&#x27;s private request returned200.</li>
+<li>B. The external request used the same managed identity.</li>
+<li>C. The external user had the recorded container reader assignment and its request returned403.</li>
+<li>D. Every possible storage access path has been verified.</li>
+</ul>
+<p><strong>4.</strong> Resource Graph returns no matching retired lesson groups. What should an assessor conclude?</p>
+<ul>
+<li>A. The entire subscription is empty and cannot bill further.</li>
+<li>B. No groups matching that query were visible at the selected scope/time; confirm exact retirement through direct readback and state evidence.</li>
+<li>C. The previous deny policy has been proven effective again.</li>
+<li>D. The deleted groups must be recreated for evidence.</li>
+</ul>
+<p><strong>5.</strong> A requirement says resources without the correct Owner tag must not be created. Your implemented effect is Audit. What is the best recommendation?</p>
+<ul>
+<li>A. Declare prevention satisfied because the resource is later noncompliant.</li>
+<li>B. Identify the effect/requirement mismatch and propose a scoped preventative policy design for review and testing.</li>
+<li>C. Give all developers Owner.</li>
+<li>D. Remove the requirement from the report.</li>
+</ul>
+<p><strong>6.</strong> The lab&#x27;s planned tests and teardown are evidenced, but on-premises DNS was outside scope. Which closeout is most defensible?</p>
+<ul>
+<li>A. Claim enterprise connectivity and security are fully assessed.</li>
+<li>B. Close the bounded lab with the unassessed path and required future evidence recorded separately.</li>
+<li>C. Label the untested path a confirmed critical vulnerability.</li>
+<li>D. Leave every objective permanently incomplete.</li>
+</ul>
+<p><strong>7.</strong> An automated report recommends risk acceptance because its compliance percentage is100%. What belongs to the security review?</p>
+<ul>
+<li>A. Accept its recommendation without checking denominators or scope.</li>
+<li>B. Verify evidence coverage, timing and limitations; route any risk-acceptance decision to the authorized role.</li>
+<li>C. Change failing policy assignments to exclusions until the score rises.</li>
+<li>D. Treat the report as an ATO.</li>
+</ul>
+<p><strong>8.</strong> You paste <code>Resources | summarize count()</code> into the workspace&#x27;s Log Analytics Logs editor and it fails. What is the first correction?</p>
+<ul>
+<li>A. Grant subscription Owner.</li>
+<li>B. Reinstall Terraform.</li>
+<li>C. Use Resource Graph Explorer for the inventory query; a common query language does not imply common tables.</li>
+<li>D. Enable a paid connector.</li>
+</ul>
+<h2>Answers and explanation review — 15 minutes</h2>
+<ol>
+<li><strong>B.</strong> Preserve the original export. Select the relevant scope and latest pairwise evaluation, retaining time; do not relabel a historical snapshot as current live compliance.</li>
+<li><strong>C.</strong> Intent, configuration and behavior answer different questions. A commit or successful plan is not a traffic result.</li>
+<li><strong>A and C.</strong> The origins and principals differed. The verified assignment is narrower evidence than an independently successful private read by the external user.</li>
+<li><strong>B.</strong> Query scope, permissions, filters and indexing affect visibility. Billing also has its own timeline.</li>
+<li><strong>B.</strong> Audit records a violation without implementing the requested prevention. A design correction needs its own scope review and validation.</li>
+<li><strong>B.</strong> Completion is assessed against the defined objective. Untested requirements remain explicit, neither silently approved nor falsely reported as proven vulnerabilities.</li>
+<li><strong>B.</strong> A percentage is relative to its evaluated population and rules. Assessment evidence informs a decision; it does not replace the responsible decision-maker.</li>
+<li><strong>C.</strong> Resource Graph inventory and Log Analytics event data are different services and tables.</li>
+</ol>
+<p>For the six draft sentences: Owner was repaired manually;20 rows are evaluations rather than20 current resources; the latest four exact saved pairs were compliant; the location assignment targeted one lesson group and NSGs; the network tests used two identities; zero matching retired groups does not mean zero resources or zero charges; enterprise rollout is not justified by this bounded evidence. Explain these corrections in your own words rather than copying the answer key.</p>
+<p>If you miss two or more questions, use the review block on those concepts. For Alan Rodrigues AZ-305, pin the section on <strong>governance scope, Azure Policy versus RBAC and resource organization</strong>. Use its title in your course edition; lecture numbering has not been verified. A short matching segment can replace part of the review time, rather than extend the day.</p>
+<h2>Final learning note — 10 minutes</h2>
+<ul>
+<li>Day 50 status: COMPLETE / PARTIAL / BLOCKED / FAILED EXPECTATION.</li>
+<li>Exact review boundary and execution date:</li>
+<li>One claim corrected using Policy scope/time:</li>
+<li>One claim corrected using network/identity evidence:</li>
+<li>Resource Graph scope/counts and interpretation:</li>
+<li>Lab closeout decision; enterprise approval assessed separately:</li>
+<li>Follow-up owner, next review point and required evidence:</li>
+<li>Cleanup readback and source revision recorded:</li>
+<li>Quiz score; one concept to revisit:</li>
+</ul>
+<p>COMPLETE means you performed the review, corrected the claims, ran or inspected the scoped query evidence and saved a reasoned conclusion. PARTIAL names an unfinished objective. BLOCKED names a missing prerequisite. FAILED EXPECTATION records an executed check that contradicted the expected result. A carefully bounded conclusion can be complete while explicitly carrying forward an unassessed enterprise scenario.</p>
+<p>Today finishes this governance block. No additional deployment is required to catch up. Resume the next original topic at your next chosen study session; keep the planned holiday break free.</p></body></html>
